@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Estilos (sin cambios) */
+    :root {
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --bg-color: #FFFFFF;
+      --font-color: #333333;
+      --primary-color: #0D99FF;
+      --primary-hover: #0B7DD9;
+      --secondary-bg: #F0F0F0;
+      --border-color: #E5E5E5;
+      --error-color: #F24822;
+      --success-color: #1BC47D;
+      --info-color: #e0e0e0;
+      --info-font-color: #555;
+    }
+    body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--font-color); margin: 0; padding: 16px; font-size: 12px;}
+    .container { display: flex; flex-direction: column; gap: 16px; }
+    h3 { margin: 0; font-size: 14px; font-weight: 600; text-align: center; }
+    .rules-group, .results-group { background-color: var(--secondary-bg); border-radius: 8px; padding: 12px; text-align: left; }
+    label { font-size: 11px; font-weight: 500; display: block; margin-bottom: 4px; }
+    textarea { width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid var(--border-color); padding: 8px; font-family: var(--font-family); font-size: 12px; resize: vertical; min-height: 40px; }
+    button { font-weight: 600; font-size: 12px; padding: 10px; border-radius: 8px; border: none; cursor: pointer; transition: background-color 0.2s; width: 100%;}
+    #revisar-seleccion { background-color: var(--primary-color); color: white; }
+    #revisar-seleccion:hover { background-color: var(--primary-hover); }
+    #revisar-todo { background-color: #1BC47D; color: white; }
+    #revisar-todo:hover { background-color: #169d63; }
+    #revisar-todo:disabled { background-color: #a0a0a0; cursor: not-allowed; }
+    .checkbox-container { display: flex; align-items: center; gap: 8px; padding: 8px; background-color: var(--secondary-bg); border-radius: 8px; }
+    .checkbox-container label { margin-bottom: 0; }
+    #status-box { padding: 12px; font-weight: 600; border-radius: 8px; text-align: center; }
+    .status.success { background-color: var(--success-color); color: white; }
+    .status.error { background-color: var(--error-color); color: white; }
+    .status.info { background-color: var(--info-color); color: var(--info-font-color); }
+    #results-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .result-item { background: white; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer; }
+    .result-item:hover { border-color: var(--primary-color); }
+    .result-item .error-term { color: var(--error-color); font-weight: bold; }
+    .result-item .location { font-size: 10px; color: #666; }
+    .result-item .text-preview { font-style: italic; color: #333; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h3>Asistente de Contenido</h3>
+    <div class="rules-group">
+      <label for="prohibidos">Términos Prohibidos (separados por coma)</label>
+      <textarea id="prohibidos" placeholder="Ej: barato, oferta, ganga"></textarea>
+    </div>
+
+    <button id="revisar-seleccion">Revisar Selección</button>
+    
+    <div class="checkbox-container">
+      <input type="checkbox" id="seguimiento" checked>
+      <label for="seguimiento">Activar seguimiento visual</label>
+    </div>
+    <button id="revisar-todo">Revisar Todo Automáticamente</button>
+    <div id="status-box" class="status info">Listo para revisar.</div>
+    <div class="results-group">
+      <label>Errores encontrados:</label>
+      <div id="results-list"></div>
+    </div>
+  </div>
+
+  <script>
+    // El script no necesita cambios
+    const prohibidosInput = document.getElementById('prohibidos');
+    const revisarSeleccionBtn = document.getElementById('revisar-seleccion');
+    const revisarTodoBtn = document.getElementById('revisar-todo');
+    const seguimientoCheckbox = document.getElementById('seguimiento');
+    const statusBox = document.getElementById('status-box');
+    const resultsList = document.getElementById('results-list');
+
+    revisarSeleccionBtn.onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'revisar-seleccion', prohibidos: prohibidosInput.value } }, '*');
+    };
+
+    revisarTodoBtn.onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'revisar-todo', prohibidos: prohibidosInput.value, seguimiento: seguimientoCheckbox.checked } }, '*');
+    };
+    
+    seguimientoCheckbox.onchange = () => {
+      parent.postMessage({ pluginMessage: { type: 'actualizar-seguimiento', estado: seguimientoCheckbox.checked } }, '*');
+    };
+
+    resultsList.onclick = (event) => {
+      const target = event.target.closest('.result-item');
+      if (target) {
+        parent.postMessage({ pluginMessage: { type: 'ir-a-nodo', nodeId: target.dataset.nodeId } }, '*');
+      }
+    };
+
+    window.onmessage = (event) => {
+      const msg = event.data.pluginMessage;
+      switch (msg.type) {
+        case 'scan-iniciado':
+          revisarSeleccionBtn.disabled = true;
+          revisarTodoBtn.disabled = true;
+          revisarSeleccionBtn.innerText = "Revisando...";
+          revisarTodoBtn.innerText = "Revisando...";
+          resultsList.innerHTML = '';
+          statusBox.className = 'status info';
+          statusBox.innerText = 'Iniciando revisión...';
+          break;
+        case 'scan-finalizado':
+          revisarSeleccionBtn.disabled = false;
+          revisarTodoBtn.disabled = false;
+          revisarSeleccionBtn.innerText = "Revisar Selección";
+          revisarTodoBtn.innerText = "Revisar Todo Automáticamente";
+          statusBox.className = 'status ' + (msg.errores.length > 0 ? 'error' : 'success');
+          statusBox.innerHTML = `Revisión completa. Se encontraron ${msg.errores.length} errores.`;
+          resultsList.innerHTML = ''; 
+          msg.errores.forEach(err => {
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            item.dataset.nodeId = err.nodeId;
+            item.innerHTML = `
+              <div class="location">📍 En: <b>${err.ubicacion}</b></div>
+              <div class="text-preview">"...${err.texto}..."</div>
+              <div>Término: <span class="error-term">${err.error}</span></div>
+            `;
+            resultsList.appendChild(item);
+          });
+          break;
+      }
+    };
+  </script>
+</body>
+</html>
