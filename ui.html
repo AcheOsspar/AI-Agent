@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* Estilos (sin cambios en su mayoría) */
     :root {
       --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       --bg-color: #FFFFFF;
@@ -17,94 +16,106 @@
       --success-color: #1BC47D;
       --info-color: #e0e0e0;
       --info-font-color: #555;
-      /* ✅ NUEVO: Color para el item revisado */
-      --revisado-bg: #EAF3FE;
-      --revisado-border: #B3D1FF;
+      --revisado-bg: #F5F5F5;
+      --revisado-border: #DDDDDD;
+      --reemplazado-bg: #E4F8E5;
+      --reemplazado-border: #A3D9A5;
+      --omitido-bg: #EEEEEE;
     }
     body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--font-color); margin: 0; padding: 16px; font-size: 12px;}
-    .container { display: flex; flex-direction: column; gap: 16px; }
+    .container { display: flex; flex-direction: column; gap: 12px; }
     h3 { margin: 0; font-size: 14px; font-weight: 600; text-align: center; }
     .rules-group, .results-group { background-color: var(--secondary-bg); border-radius: 8px; padding: 12px; text-align: left; }
     label { font-size: 11px; font-weight: 500; display: block; margin-bottom: 4px; }
-    textarea { width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid var(--border-color); padding: 8px; font-family: var(--font-family); font-size: 12px; resize: vertical; min-height: 40px; }
+    textarea, .replace-input { width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid var(--border-color); padding: 8px; font-family: var(--font-family); font-size: 12px; }
     button { font-weight: 600; font-size: 12px; padding: 10px; border-radius: 8px; border: none; cursor: pointer; transition: background-color 0.2s; width: 100%;}
-    #revisar-seleccion { background-color: var(--primary-color); color: white; }
-    #revisar-seleccion:hover { background-color: var(--primary-hover); }
-    #revisar-seleccion:disabled { background-color: #a0a0a0; cursor: not-allowed; }
-    #revisar-todo { background-color: #1BC47D; color: white; }
-    #revisar-todo:hover { background-color: #169d63; }
-    #revisar-todo:disabled { background-color: #a0a0a0; cursor: not-allowed; }
-    .checkbox-container { display: flex; align-items: center; gap: 8px; padding: 8px; background-color: var(--secondary-bg); border-radius: 8px; }
-    .checkbox-container label { margin-bottom: 0; }
+    #revisar-seleccion, #revisar-todo { margin-bottom: 8px; }
+    button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
     #status-box { padding: 12px; font-weight: 600; border-radius: 8px; text-align: center; }
     .status.success { background-color: var(--success-color); color: white; }
     .status.error { background-color: var(--error-color); color: white; }
     .status.info { background-color: var(--info-color); color: var(--info-font-color); }
-    #results-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-    .result-item { background: white; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer; transition: background-color 0.2s; }
-    .result-item:hover { border-color: var(--primary-color); }
-    .result-item .error-term { color: var(--error-color); font-weight: bold; }
-    .result-item .location { font-size: 10px; color: #666; }
-    .result-item .text-preview { font-style: italic; color: #333; }
-
-    /* ✅ NUEVO: Estilo para la card de error cuando ya ha sido visitada */
-    .result-item.revisado {
-      background-color: var(--revisado-bg);
-      border-color: var(--revisado-border);
-      opacity: 0.8;
-    }
+    #results-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .result-item { background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); transition: background-color 0.2s; }
+    .result-item-content { cursor: pointer; }
+    .error-term { color: var(--error-color); font-weight: bold; }
+    .location { font-size: 10px; color: #666; }
+    .text-preview { font-style: italic; color: #333; margin-bottom: 8px; }
+    .result-item.revisado { background-color: var(--revisado-bg); border-color: var(--revisado-border); }
+    .result-item.reemplazado { background-color: var(--reemplazado-bg); border-color: var(--reemplazado-border); opacity: 0.8; }
+    .result-item.omitido { background-color: var(--omitido-bg); opacity: 0.7; }
+    .result-item.omitido .result-item-content { text-decoration: line-through; }
+    .action-bar { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+    .replace-btn { background-color: var(--primary-color); color: white; padding: 6px 10px; font-size: 11px; width: auto; flex-grow: 1; }
+    .replace-btn:hover { background-color: var(--primary-hover); }
+    .skip-btn { background-color: #888; color: white; padding: 6px 10px; font-size: 11px; width: auto; }
+    .skip-btn:hover { background-color: #666; }
+    #clear-memory { background: none; color: #888; font-size: 10px; padding: 4px; text-decoration: underline; width: auto; margin: 8px auto 0 auto; display: block; }
   </style>
 </head>
 <body>
   <div class="container">
     <h3>Asistente de Contenido</h3>
     <div class="rules-group">
-      <label for="prohibidos">Términos Prohibidos (separados por coma)</label>
-      <textarea id="prohibidos" placeholder="Ej: barato, oferta, ganga"></textarea>
+      <label for="prohibidos">Términos a buscar (separados por coma)</label>
+      <textarea id="prohibidos"></textarea>
     </div>
 
     <button id="revisar-seleccion">Revisar Selección</button>
-    
-    <div class="checkbox-container">
-      <input type="checkbox" id="seguimiento" checked>
-      <label for="seguimiento">Activar seguimiento visual</label>
-    </div>
     <button id="revisar-todo">Revisar Todo Automáticamente</button>
+    
     <div id="status-box" class="status info">Listo para revisar.</div>
+
     <div class="results-group">
-      <label>Errores encontrados:</label>
+      <label>Resultados encontrados:</label>
       <div id="results-list"></div>
     </div>
+    
+    <button id="clear-memory">Limpiar memoria de este archivo</button>
   </div>
 
   <script>
     const prohibidosInput = document.getElementById('prohibidos');
     const revisarSeleccionBtn = document.getElementById('revisar-seleccion');
     const revisarTodoBtn = document.getElementById('revisar-todo');
-    const seguimientoCheckbox = document.getElementById('seguimiento');
     const statusBox = document.getElementById('status-box');
     const resultsList = document.getElementById('results-list');
+    const clearMemoryBtn = document.getElementById('clear-memory');
 
     revisarSeleccionBtn.onclick = () => {
       parent.postMessage({ pluginMessage: { type: 'revisar-seleccion', prohibidos: prohibidosInput.value } }, '*');
     };
 
     revisarTodoBtn.onclick = () => {
-      parent.postMessage({ pluginMessage: { type: 'revisar-todo', prohibidos: prohibidosInput.value, seguimiento: seguimientoCheckbox.checked } }, '*');
+      parent.postMessage({ pluginMessage: { type: 'revisar-todo', prohibidos: prohibidosInput.value } }, '*');
     };
     
-    seguimientoCheckbox.onchange = () => {
-      parent.postMessage({ pluginMessage: { type: 'actualizar-seguimiento', estado: seguimientoCheckbox.checked } }, '*');
+    clearMemoryBtn.onclick = () => {
+      if (confirm('¿Estás seguro? Se borrarán todas las decisiones de "omitir" y "reemplazar" guardadas para este archivo.')) {
+        parent.postMessage({ pluginMessage: { type: 'limpiar-memoria' } }, '*');
+      }
     };
 
     resultsList.onclick = (event) => {
-      const target = event.target.closest('.result-item');
-      if (target) {
-        // ✅ NUEVO: Añade la clase 'revisado' a la card en la que se hizo clic
-        target.classList.add('revisado');
+      const target = event.target;
+      const resultItem = target.closest('.result-item');
+      if (!resultItem) return;
 
-        // Envía el mensaje para ir al nodo en el canvas (esto no cambia)
-        parent.postMessage({ pluginMessage: { type: 'ir-a-nodo', nodeId: target.dataset.nodeId } }, '*');
+      const nodeId = resultItem.dataset.nodeId;
+      const termino = resultItem.dataset.errorTerm;
+
+      if (target.classList.contains('replace-btn')) {
+        const input = resultItem.querySelector('.replace-input');
+        const nuevoTermino = input.value;
+        if (!nuevoTermino) return;
+        parent.postMessage({ pluginMessage: { type: 'reemplazar-texto', nodeId, terminoAntiguo: termino, terminoNuevo: nuevoTermino }}, '*');
+      }
+      else if (target.classList.contains('skip-btn')) {
+        parent.postMessage({ pluginMessage: { type: 'omitir-error', nodeId, termino }}, '*');
+      }
+      else if (target.closest('.result-item-content')) {
+        resultItem.classList.add('revisado');
+        parent.postMessage({ pluginMessage: { type: 'ir-a-nodo', nodeId }}, '*');
       }
     };
 
@@ -114,31 +125,56 @@
         case 'scan-iniciado':
           revisarSeleccionBtn.disabled = true;
           revisarTodoBtn.disabled = true;
-          revisarSeleccionBtn.innerText = "Revisando...";
-          revisarTodoBtn.innerText = "Revisando...";
           resultsList.innerHTML = '';
           statusBox.className = 'status info';
-          statusBox.innerText = 'Iniciando revisión...';
+          statusBox.innerText = 'Buscando (cargando memoria)...';
           break;
         case 'scan-finalizado':
           revisarSeleccionBtn.disabled = false;
           revisarTodoBtn.disabled = false;
-          revisarSeleccionBtn.innerText = "Revisar Selección";
-          revisarTodoBtn.innerText = "Revisar Todo Automáticamente";
-          statusBox.className = 'status ' + (msg.errores.length > 0 ? 'error' : 'success');
-          statusBox.innerHTML = `Revisión completa. Se encontraron ${msg.errores.length} errores.`;
+          statusBox.className = 'status ' + (msg.errores.length > 0 ? 'info' : 'success');
+          statusBox.innerHTML = `Búsqueda completa. Se encontraron ${msg.errores.length} nuevas coincidencias.`;
           resultsList.innerHTML = ''; 
           msg.errores.forEach(err => {
             const item = document.createElement('div');
             item.className = 'result-item';
             item.dataset.nodeId = err.nodeId;
+            item.dataset.errorTerm = err.error;
             item.innerHTML = `
-              <div class="location">📍 En: <b>${err.ubicacion}</b></div>
-              <div class="text-preview">"...${err.texto}..."</div>
-              <div>Término: <span class="error-term">${err.error}</span></div>
+              <div class="result-item-content">
+                <div class="location">📍 En: <b>${err.ubicacion}</b></div>
+                <div class="text-preview">"...${err.texto}..."</div>
+                <div>Término encontrado: <span class="error-term">${err.error}</span></div>
+              </div>
+              <div class="action-bar">
+                <input type="text" class="replace-input" placeholder="Reemplazar por...">
+                <button class="replace-btn">Reemplazar</button>
+                <button class="skip-btn">Omitir</button>
+              </div>
             `;
             resultsList.appendChild(item);
           });
+          break;
+        case 'decision-guardada':
+          const item = resultsList.querySelector(`[data-node-id="${msg.nodeId}"][data-error-term="${msg.termino}"]`);
+          if (item) {
+            item.classList.remove('revisado');
+            if (msg.decision === 'reemplazado') {
+              item.classList.add('reemplazado');
+              item.querySelector('.action-bar').innerHTML = `✅ Reemplazado por "<b>${msg.terminoNuevo}</b>"`;
+            } else if (msg.decision === 'omitido') {
+              item.classList.add('omitido');
+              item.querySelector('.action-bar').innerHTML = '⚪️ Omitido y guardado en memoria.';
+            }
+          }
+          break;
+        case 'memoria-limpiada':
+          statusBox.className = 'status success';
+          statusBox.innerHTML = '¡Memoria limpiada! La próxima búsqueda será desde cero.';
+          setTimeout(() => {
+            statusBox.className = 'status info';
+            statusBox.innerHTML = 'Listo para revisar.';
+          }, 2500);
           break;
       }
     };
