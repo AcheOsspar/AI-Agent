@@ -1,17 +1,37 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 // --- CONFIGURACIÓN Y ESTADO GLOBAL ---
 figma.showUI(__html__, { width: 360, height: 580, title: "Asistente de Contenido" });
-const STORAGE_KEY = 'contentAssistantDecisions';
+// Namespace de almacenamiento por documento usando pluginData en el root
+function getDocKey() {
+    let key = figma.root.getPluginData('contentAssistantDocKey');
+    if (!key) {
+        key = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        figma.root.setPluginData('contentAssistantDocKey', key);
+    }
+    return key;
+}
+const STORAGE_KEY = `contentAssistantDecisions:${getDocKey()}`;
 // --- FUNCIONES AUXILIARES ---
 const esperar = (ms) => new Promise(res => setTimeout(res, ms));
+// Carga todas las fuentes utilizadas en un TextNode (maneja estilos mixtos)
+async function loadFontsInNode(textNode) {
+    try {
+        const segments = textNode.getStyledTextSegments(["fontName"]);
+        const unique = [];
+        for (const seg of segments) {
+            const f = seg.fontName;
+            if (!unique.some(u => u.family === f.family && u.style === f.style)) {
+                unique.push(f);
+            }
+        }
+        await Promise.all(unique.map(f => figma.loadFontAsync(f)));
+    }
+    catch (e) {
+        // Fallback: si falla por algún motivo, intenta con fontName si no es mixed
+        if (textNode.fontName && textNode.fontName !== figma.mixed) {
+            await figma.loadFontAsync(textNode.fontName);
+        }
+    }
+}
 function getNombreUbicacion(nodo) {
     let parent = nodo.parent;
     while (parent) {
@@ -24,38 +44,41 @@ function getNombreUbicacion(nodo) {
     }
     return "Canvas Principal";
 }
-function guardarDecision(nodeId, termino, decision) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const decisiones = (yield figma.clientStorage.getAsync(STORAGE_KEY)) || {};
-        const errorId = `${nodeId}__${termino}`; // Usamos doble guion bajo para más seguridad
-        decisiones[errorId] = { estado: decision };
-        yield figma.clientStorage.setAsync(STORAGE_KEY, decisiones);
-    });
+async function guardarDecision(nodeId, termino, decision) {
+    const decisiones = await figma.clientStorage.getAsync(STORAGE_KEY) || {};
+    const errorId = `${nodeId}__${termino}`; // Usamos doble guion bajo para más seguridad
+    decisiones[errorId] = { estado: decision };
+    await figma.clientStorage.setAsync(STORAGE_KEY, decisiones);
 }
 // --- MANEJO DE MENSAJES DESDE LA UI ---
-figma.ui.onmessage = (msg) => __awaiter(this, void 0, void 0, function* () {
+figma.ui.onmessage = async (msg) => {
     if (msg.type === 'limpiar-memoria') {
-        yield figma.clientStorage.setAsync(STORAGE_KEY, {});
+        await figma.clientStorage.setAsync(STORAGE_KEY, {});
         figma.ui.postMessage({ type: 'memoria-limpiada' });
         return;
     }
     if (msg.type === 'omitir-error') {
-        yield guardarDecision(msg.nodeId, msg.termino, 'omitido');
+        await guardarDecision(msg.nodeId, msg.termino, 'omitido');
         figma.ui.postMessage({ type: 'decision-guardada', nodeId: msg.nodeId, termino: msg.termino, decision: 'omitido' });
+        return;
+    }
+    if (msg.type === 'marcar-listo') {
+        await guardarDecision(msg.nodeId, msg.termino, 'listo');
+        figma.ui.postMessage({ type: 'decision-guardada', nodeId: msg.nodeId, termino: msg.termino, decision: 'listo' });
         return;
     }
     if (msg.type === 'reemplazar-texto') {
         const { nodeId, terminoAntiguo, terminoNuevo } = msg;
-        const nodo = yield figma.getNodeByIdAsync(nodeId);
+        const nodo = await figma.getNodeByIdAsync(nodeId);
         if (nodo && nodo.type === 'TEXT') {
-            yield figma.loadFontAsync(nodo.fontName);
+            await loadFontsInNode(nodo);
             const textoActual = nodo.characters;
             // Creamos un RegExp para reemplazar de forma case-insensitive
-            const regex = new RegExp(terminoAntiguo.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+            const regex = new RegExp(terminoAntiguo.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
             const textoNuevo = textoActual.replace(regex, terminoNuevo);
             nodo.characters = textoNuevo;
             // Guardamos la decisión para no volver a mostrar este error
-            yield guardarDecision(nodeId, terminoAntiguo, 'reemplazado');
+            await guardarDecision(nodeId, terminoAntiguo, 'reemplazado');
             figma.ui.postMessage({
                 type: 'decision-guardada',
                 nodeId,
@@ -63,13 +86,16 @@ figma.ui.onmessage = (msg) => __awaiter(this, void 0, void 0, function* () {
                 decision: 'reemplazado',
                 terminoNuevo
             });
+            // Navega al nodo tras reemplazar
+            figma.currentPage.selection = [nodo];
+            figma.viewport.scrollAndZoomIntoView([nodo]);
         }
         return;
     }
     if (msg.type === 'revisar-seleccion' || msg.type === 'revisar-todo') {
         figma.ui.postMessage({ type: 'scan-iniciado' });
         // ✅ Carga la memoria al iniciar la búsqueda
-        const decisionesGuardadas = (yield figma.clientStorage.getAsync(STORAGE_KEY)) || {};
+        const decisionesGuardadas = await figma.clientStorage.getAsync(STORAGE_KEY) || {};
         let textosAAnalizar;
         if (msg.type === 'revisar-seleccion') {
             textosAAnalizar = [];
@@ -92,7 +118,7 @@ figma.ui.onmessage = (msg) => __awaiter(this, void 0, void 0, function* () {
             for (const termino of terminosBuscados) {
                 const errorId = `${capaDeTexto.id}__${termino}`;
                 // ✅ Si la decisión ya está en memoria, la salta
-                if (decisionesGuardadas[errorId] && (decisionesGuardadas[errorId].estado === 'omitido' || decisionesGuardadas[errorId].estado === 'reemplazado')) {
+                if (decisionesGuardadas[errorId] && (decisionesGuardadas[errorId].estado === 'omitido' || decisionesGuardadas[errorId].estado === 'reemplazado' || decisionesGuardadas[errorId].estado === 'listo')) {
                     continue;
                 }
                 if (capaDeTexto.characters.toLowerCase().includes(termino)) {
@@ -109,10 +135,10 @@ figma.ui.onmessage = (msg) => __awaiter(this, void 0, void 0, function* () {
         return;
     }
     if (msg.type === 'ir-a-nodo') {
-        const nodo = yield figma.getNodeByIdAsync(msg.nodeId);
+        const nodo = await figma.getNodeByIdAsync(msg.nodeId);
         if (nodo) {
             figma.viewport.scrollAndZoomIntoView([nodo]);
             figma.currentPage.selection = [nodo];
         }
     }
-});
+};

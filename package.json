@@ -1,0 +1,12 @@
+{
+  "name": "ai-agent-figma-plugin",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json -w"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

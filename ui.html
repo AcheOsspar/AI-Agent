@@ -5,73 +5,523 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     :root {
-      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      --bg-color: #FFFFFF;
-      --font-color: #333333;
-      --primary-color: #0D99FF;
-      --primary-hover: #0B7DD9;
-      --secondary-bg: #F0F0F0;
-      --border-color: #E5E5E5;
-      --error-color: #F24822;
-      --success-color: #1BC47D;
-      --info-color: #e0e0e0;
-      --info-font-color: #555;
-      --revisado-bg: #F5F5F5;
-      --revisado-border: #DDDDDD;
-      --reemplazado-bg: #E4F8E5;
-      --reemplazado-border: #A3D9A5;
-      --omitido-bg: #EEEEEE;
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Display', Roboto, Helvetica, Arial, sans-serif;
+      --bg-color: #FAFAFA;
+      --card-bg: #FFFFFF;
+      --font-color: #1A1A1A;
+      --font-secondary: #6B7280;
+      --font-tertiary: #9CA3AF;
+      --primary-color: #5B57F7;
+      --primary-hover: #4F46E5;
+      --primary-light: #F0F0FF;
+      --secondary-bg: #F8F9FA;
+      --border-color: #E5E7EB;
+      --border-light: #F3F4F6;
+      --error-color: #EF4444;
+      --error-light: #FEF2F2;
+      --success-color: #10B981;
+      --success-light: #ECFDF5;
+      --warning-color: #F59E0B;
+      --warning-light: #FFFBEB;
+      --info-color: #F8F9FA;
+      --info-font-color: #374151;
+      --revisado-bg: #F9FAFB;
+      --revisado-border: #E5E7EB;
+      --reemplazado-bg: var(--success-light);
+      --reemplazado-border: #A7F3D0;
+      --omitido-bg: #F3F4F6;
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --radius-sm: 6px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
     }
-    body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--font-color); margin: 0; padding: 16px; font-size: 12px;}
-    .container { display: flex; flex-direction: column; gap: 12px; }
-    h3 { margin: 0; font-size: 14px; font-weight: 600; text-align: center; }
-    .rules-group, .results-group { background-color: var(--secondary-bg); border-radius: 8px; padding: 12px; text-align: left; }
-    label { font-size: 11px; font-weight: 500; display: block; margin-bottom: 4px; }
-    textarea, .replace-input { width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid var(--border-color); padding: 8px; font-family: var(--font-family); font-size: 12px; }
-    button { font-weight: 600; font-size: 12px; padding: 10px; border-radius: 8px; border: none; cursor: pointer; transition: background-color 0.2s; width: 100%;}
-    #revisar-seleccion, #revisar-todo { margin-bottom: 8px; }
-    button:disabled { background-color: #a0a0a0; cursor: not-allowed; }
-    #status-box { padding: 12px; font-weight: 600; border-radius: 8px; text-align: center; }
-    .status.success { background-color: var(--success-color); color: white; }
-    .status.error { background-color: var(--error-color); color: white; }
-    .status.info { background-color: var(--info-color); color: var(--info-font-color); }
-    #results-list { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .result-item { background: white; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); transition: background-color 0.2s; }
+    
+    * { box-sizing: border-box; }
+    
+    body { 
+      font-family: var(--font-family); 
+      background-color: var(--bg-color); 
+      color: var(--font-color); 
+      margin: 0; 
+      padding: 20px 16px; 
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    
+    .container { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 20px; 
+      max-width: 400px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    
+    .header h3 { 
+      margin: 0; 
+      font-size: 20px; 
+      font-weight: 700; 
+      color: var(--font-color);
+      letter-spacing: -0.025em;
+    }
+    
+    .header p {
+      margin: 4px 0 0 0;
+      font-size: 14px;
+      color: var(--font-secondary);
+      font-weight: 400;
+    }
+    
+    .card {
+      background-color: var(--card-bg);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    
+    .card-content {
+      padding: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    label { 
+      font-size: 13px; 
+      font-weight: 600; 
+      color: var(--font-color);
+      display: block; 
+      margin-bottom: 8px; 
+    }
+    
+    textarea, .replace-input { 
+      width: 100%; 
+      border-radius: var(--radius-sm); 
+      border: 1px solid var(--border-color); 
+      padding: 12px; 
+      font-family: var(--font-family); 
+      font-size: 14px;
+      background-color: var(--card-bg);
+      color: var(--font-color);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    textarea:focus, .replace-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+    
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    button { 
+      font-weight: 600; 
+      font-size: 14px; 
+      padding: 14px 20px; 
+      border-radius: var(--radius-md); 
+      border: none; 
+      cursor: pointer; 
+      transition: all 0.2s ease; 
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background-color: var(--card-bg);
+      color: var(--font-color);
+      border: 1px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background-color: var(--secondary-bg);
+      border-color: var(--primary-color);
+    }
+    
+    button:disabled { 
+      background-color: var(--border-color); 
+      color: var(--font-tertiary);
+      cursor: not-allowed; 
+      transform: none;
+      box-shadow: none;
+    }
+    
+    #status-box { 
+      padding: 16px 20px; 
+      font-weight: 500; 
+      border-radius: var(--radius-md); 
+      text-align: center;
+      border: 1px solid transparent;
+      font-size: 14px;
+    }
+    
+    .status.success { 
+      background-color: var(--success-light); 
+      color: var(--success-color);
+      border-color: #A7F3D0;
+    }
+    
+    .status.error { 
+      background-color: var(--error-light); 
+      color: var(--error-color);
+      border-color: #FECACA;
+    }
+    
+    .status.info { 
+      background-color: var(--info-color); 
+      color: var(--info-font-color);
+      border-color: var(--border-light);
+    }
+    
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    
+    .results-count {
+      background-color: var(--primary-light);
+      color: var(--primary-color);
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    #results-list { 
+      max-height: 350px; 
+      overflow-y: auto; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px;
+      padding-right: 4px;
+    }
+    
+    #results-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    #results-list::-webkit-scrollbar-track {
+      background: var(--secondary-bg);
+      border-radius: 3px;
+    }
+    
+    #results-list::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 3px;
+    }
+    
+    #results-list::-webkit-scrollbar-thumb:hover {
+      background: var(--font-tertiary);
+    }
+    
+    .result-item { 
+      background: var(--card-bg); 
+      padding: 16px; 
+      border-radius: var(--radius-md); 
+      border: 1px solid var(--border-light); 
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+    
+    .result-item:hover {
+      border-color: var(--primary-color);
+      box-shadow: var(--shadow-md);
+    }
+    
     .result-item-content { cursor: pointer; }
-    .error-term { color: var(--error-color); font-weight: bold; }
-    .location { font-size: 10px; color: #666; }
-    .text-preview { font-style: italic; color: #333; margin-bottom: 8px; }
-    .result-item.revisado { background-color: var(--revisado-bg); border-color: var(--revisado-border); }
-    .result-item.reemplazado { background-color: var(--reemplazado-bg); border-color: var(--reemplazado-border); opacity: 0.8; }
-    .result-item.omitido { background-color: var(--omitido-bg); opacity: 0.7; }
-    .result-item.omitido .result-item-content { text-decoration: line-through; }
-    .action-bar { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
-    .replace-btn { background-color: var(--primary-color); color: white; padding: 6px 10px; font-size: 11px; width: auto; flex-grow: 1; }
-    .replace-btn:hover { background-color: var(--primary-hover); }
-    .skip-btn { background-color: #888; color: white; padding: 6px 10px; font-size: 11px; width: auto; }
-    .skip-btn:hover { background-color: #666; }
-    #clear-memory { background: none; color: #888; font-size: 10px; padding: 4px; text-decoration: underline; width: auto; margin: 8px auto 0 auto; display: block; }
+    
+    .error-term { 
+      color: var(--error-color); 
+      font-weight: 700;
+      background-color: var(--error-light);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    .location { 
+      font-size: 12px; 
+      color: var(--font-tertiary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .text-preview { 
+      font-style: italic; 
+      color: var(--font-secondary); 
+      margin-bottom: 12px;
+      line-height: 1.4;
+      font-size: 13px;
+    }
+    
+    .result-item.revisado { 
+      background-color: var(--revisado-bg); 
+      border-color: var(--revisado-border); 
+    }
+    
+    .result-item.reemplazado { 
+      background-color: var(--reemplazado-bg); 
+      border-color: var(--reemplazado-border); 
+    }
+    
+    .result-item.omitido { 
+      background-color: var(--omitido-bg); 
+      opacity: 0.7; 
+    }
+    
+    .result-item.omitido .result-item-content { 
+      text-decoration: line-through; 
+    }
+    
+    .action-bar { 
+      margin-top: 12px; 
+      display: flex; 
+      gap: 8px; 
+      align-items: stretch; 
+    }
+    
+    .action-bar .replace-input {
+      flex: 1;
+      min-height: auto;
+      padding: 8px 12px;
+      font-size: 13px;
+      margin: 0;
+    }
+    
+    .replace-btn { 
+      background-color: var(--primary-color); 
+      color: white; 
+      padding: 8px 16px; 
+      font-size: 12px; 
+      width: auto; 
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+    }
+    
+    .replace-btn:hover { 
+      background-color: var(--primary-hover); 
+    }
+    
+    .skip-btn { 
+      background-color: var(--font-tertiary); 
+      color: white; 
+      padding: 8px 16px; 
+      font-size: 12px; 
+      width: auto;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+    }
+    
+    .skip-btn:hover { 
+      background-color: var(--font-secondary); 
+    }
+
+    .done-btn {
+      background-color: #16a34a; /* green-600 */
+      color: white;
+      padding: 8px 16px;
+      font-size: 12px;
+      width: auto;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+    }
+
+    .done-btn:hover {
+      background-color: #15803d; /* green-700 */
+    }
+    
+    .clear-memory-container {
+      text-align: center;
+      padding-top: 8px;
+    }
+    
+    #clear-memory { 
+      background: none; 
+      color: var(--font-tertiary); 
+      font-size: 13px; 
+      padding: 8px 16px; 
+      text-decoration: none;
+      width: auto; 
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+    
+    #clear-memory:hover {
+      color: var(--error-color);
+      background-color: var(--error-light);
+      border-color: #FECACA;
+    }
+    
+    .icon {
+      font-size: 16px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--font-tertiary);
+    }
+    
+    .empty-state .icon {
+      font-size: 32px;
+      margin-bottom: 12px;
+      opacity: 0.5;
+    }
+
+    /* Animaciones suaves */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-item {
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    /* Mejoras de accesibilidad */
+    button:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    textarea:focus-visible, .replace-input:focus-visible {
+      outline: none;
+    }
+
+    /* Estados de carga */
+    .loading {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .loading::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: loading 1.5s infinite;
+    }
+
+    @keyframes loading {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    /* Mejoras responsive */
+    @media (max-width: 360px) {
+      .container {
+        max-width: 100%;
+        padding: 0 12px;
+      }
+      
+      .card-content {
+        padding: 16px;
+      }
+      
+      button {
+        padding: 12px 16px;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h3>Asistente de Contenido</h3>
-    <div class="rules-group">
-      <label for="prohibidos">Términos a buscar (separados por coma)</label>
-      <textarea id="prohibidos"></textarea>
-    </div>
-
-    <button id="revisar-seleccion">Revisar Selección</button>
-    <button id="revisar-todo">Revisar Todo Automáticamente</button>
-    
-    <div id="status-box" class="status info">Listo para revisar.</div>
-
-    <div class="results-group">
-      <label>Resultados encontrados:</label>
-      <div id="results-list"></div>
+    <div class="header">
+      <h3>Asistente de Contenido</h3>
+      <p>Revisa y mejora tu contenido automáticamente</p>
     </div>
     
-    <button id="clear-memory">Limpiar memoria de este archivo</button>
+    <div class="card">
+      <div class="card-content">
+        <div class="form-group">
+          <label for="prohibidos">
+            <span class="icon">🔍</span>
+            Términos a buscar (separados por coma)
+          </label>
+          <textarea 
+            id="prohibidos" 
+            placeholder="Escribe los términos que quieres revisar..."
+          ></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button id="revisar-seleccion" class="btn-primary">
+        <span class="icon">📝</span>
+        Revisar Selección
+      </button>
+      <button id="revisar-todo" class="btn-secondary">
+        <span class="icon">🔄</span>
+        Revisar Todo Automáticamente
+      </button>
+    </div>
+    
+    <div id="status-box" class="status info">
+      <span class="icon">✨</span>
+      Listo para revisar.
+    </div>
+
+    <div class="card" id="results-container" style="display: none;">
+      <div class="card-content">
+        <div class="results-header">
+          <label>Resultados encontrados</label>
+          <span class="results-count" id="results-count">0</span>
+        </div>
+  <div id="results-list"></div>
+      </div>
+    </div>
+    
+    <div class="clear-memory-container">
+      <button id="clear-memory">
+        <span class="icon">🗑️</span>
+        Limpiar memoria de este archivo
+      </button>
+    </div>
   </div>
 
   <script>
@@ -79,15 +529,47 @@
     const revisarSeleccionBtn = document.getElementById('revisar-seleccion');
     const revisarTodoBtn = document.getElementById('revisar-todo');
     const statusBox = document.getElementById('status-box');
-    const resultsList = document.getElementById('results-list');
+  const resultsList = document.getElementById('results-list');
+    const resultsContainer = document.getElementById('results-container');
+    const resultsCount = document.getElementById('results-count');
     const clearMemoryBtn = document.getElementById('clear-memory');
 
+    // Función para mostrar/ocultar contenedor de resultados
+    function toggleResultsContainer(show) {
+      resultsContainer.style.display = show ? 'block' : 'none';
+    }
+
+    // Función para actualizar contador de resultados
+    function updateResultsCount(count) {
+      resultsCount.textContent = count;
+    }
+
     revisarSeleccionBtn.onclick = () => {
-      parent.postMessage({ pluginMessage: { type: 'revisar-seleccion', prohibidos: prohibidosInput.value } }, '*');
+      const terms = prohibidosInput.value.trim();
+      if (!terms) {
+        statusBox.className = 'status error';
+        statusBox.innerHTML = '<span class="icon">⚠️</span> Por favor, ingresa algunos términos para buscar.';
+        return;
+      }
+      
+      statusBox.className = 'status info';
+      statusBox.innerHTML = '<span class="icon">🔍</span> Revisando selección...';
+      
+      parent.postMessage({ pluginMessage: { type: 'revisar-seleccion', prohibidos: terms } }, '*');
     };
 
     revisarTodoBtn.onclick = () => {
-      parent.postMessage({ pluginMessage: { type: 'revisar-todo', prohibidos: prohibidosInput.value } }, '*');
+      const terms = prohibidosInput.value.trim();
+      if (!terms) {
+        statusBox.className = 'status error';
+        statusBox.innerHTML = '<span class="icon">⚠️</span> Por favor, ingresa algunos términos para buscar.';
+        return;
+      }
+      
+      statusBox.className = 'status info';
+      statusBox.innerHTML = '<span class="icon">🔄</span> Revisando todo el documento...';
+      
+      parent.postMessage({ pluginMessage: { type: 'revisar-todo', prohibidos: terms } }, '*');
     };
     
     clearMemoryBtn.onclick = () => {
@@ -106,12 +588,21 @@
 
       if (target.classList.contains('replace-btn')) {
         const input = resultItem.querySelector('.replace-input');
-        const nuevoTermino = input.value;
-        if (!nuevoTermino) return;
+        const nuevoTermino = input.value.trim();
+        if (!nuevoTermino) {
+          statusBox.className = 'status error';
+          statusBox.innerHTML = '<span class="icon">⚠️</span> Por favor, ingresa un texto de reemplazo.';
+          return;
+        }
         parent.postMessage({ pluginMessage: { type: 'reemplazar-texto', nodeId, terminoAntiguo: termino, terminoNuevo: nuevoTermino }}, '*');
+        // Llevar al texto inmediatamente
+        parent.postMessage({ pluginMessage: { type: 'ir-a-nodo', nodeId }}, '*');
       }
       else if (target.classList.contains('skip-btn')) {
         parent.postMessage({ pluginMessage: { type: 'omitir-error', nodeId, termino }}, '*');
+      }
+      else if (target.classList.contains('done-btn')) {
+        parent.postMessage({ pluginMessage: { type: 'marcar-listo', nodeId, termino }}, '*');
       }
       else if (target.closest('.result-item-content')) {
         resultItem.classList.add('revisado');
@@ -126,32 +617,75 @@
           revisarSeleccionBtn.disabled = true;
           revisarTodoBtn.disabled = true;
           resultsList.innerHTML = '';
+          toggleResultsContainer(false);
           statusBox.className = 'status info';
-          statusBox.innerText = 'Buscando (cargando memoria)...';
+          statusBox.innerHTML = '<span class="icon">🔍</span> Buscando (cargando memoria)...';
           break;
         case 'scan-finalizado':
           revisarSeleccionBtn.disabled = false;
           revisarTodoBtn.disabled = false;
+          updateResultsCount(msg.errores.length);
+          toggleResultsContainer(msg.errores.length > 0);
+          
           statusBox.className = 'status ' + (msg.errores.length > 0 ? 'info' : 'success');
-          statusBox.innerHTML = `Búsqueda completa. Se encontraron ${msg.errores.length} nuevas coincidencias.`;
+          statusBox.innerHTML = msg.errores.length > 0 
+            ? `<span class="icon">📋</span> Se encontraron ${msg.errores.length} coincidencias.`
+            : '<span class="icon">🎉</span> No se encontraron términos prohibidos.';
+          
           resultsList.innerHTML = ''; 
           msg.errores.forEach(err => {
             const item = document.createElement('div');
             item.className = 'result-item';
             item.dataset.nodeId = err.nodeId;
             item.dataset.errorTerm = err.error;
-            item.innerHTML = `
-              <div class="result-item-content">
-                <div class="location">📍 En: <b>${err.ubicacion}</b></div>
-                <div class="text-preview">"...${err.texto}..."</div>
-                <div>Término encontrado: <span class="error-term">${err.error}</span></div>
-              </div>
-              <div class="action-bar">
-                <input type="text" class="replace-input" placeholder="Reemplazar por...">
-                <button class="replace-btn">Reemplazar</button>
-                <button class="skip-btn">Omitir</button>
-              </div>
-            `;
+            // Construcción segura evitando inyección
+            const content = document.createElement('div');
+            content.className = 'result-item-content';
+
+            const loc = document.createElement('div');
+            loc.className = 'location';
+            loc.innerHTML = '<span class="icon">📍</span> En: ';
+            const b = document.createElement('b');
+            b.textContent = err.ubicacion;
+            loc.appendChild(b);
+            content.appendChild(loc);
+
+            const preview = document.createElement('div');
+            preview.className = 'text-preview';
+            preview.textContent = `"...${err.texto}..."`;
+            content.appendChild(preview);
+
+            const errorTerm = document.createElement('div');
+            errorTerm.className = 'error-term';
+            errorTerm.textContent = err.error;
+            content.appendChild(errorTerm);
+
+            const actionBar = document.createElement('div');
+            actionBar.className = 'action-bar';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'replace-input';
+            input.placeholder = 'Reemplazar por...';
+            actionBar.appendChild(input);
+
+            const replaceBtn = document.createElement('button');
+            replaceBtn.className = 'replace-btn';
+            replaceBtn.textContent = 'Reemplazar';
+            actionBar.appendChild(replaceBtn);
+
+            const skipBtn = document.createElement('button');
+            skipBtn.className = 'skip-btn';
+            skipBtn.textContent = 'Omitir';
+            actionBar.appendChild(skipBtn);
+
+            const doneBtn = document.createElement('button');
+            doneBtn.className = 'done-btn';
+            doneBtn.textContent = 'Listo';
+            actionBar.appendChild(doneBtn);
+
+            item.appendChild(content);
+            item.appendChild(actionBar);
             resultsList.appendChild(item);
           });
           break;
@@ -161,19 +695,46 @@
             item.classList.remove('revisado');
             if (msg.decision === 'reemplazado') {
               item.classList.add('reemplazado');
-              item.querySelector('.action-bar').innerHTML = `✅ Reemplazado por "<b>${msg.terminoNuevo}</b>"`;
+              const bar = item.querySelector('.action-bar');
+              bar.textContent = '';
+              const icon = document.createElement('span'); icon.className = 'icon'; icon.textContent = '✅';
+              bar.appendChild(icon);
+              const txt = document.createElement('span'); txt.innerHTML = ' Reemplazado por ';
+              bar.appendChild(txt);
+              const b = document.createElement('b'); b.textContent = msg.terminoNuevo;
+              bar.appendChild(b);
+              statusBox.className = 'status success';
+              statusBox.innerHTML = '<span class="icon">✅</span> Texto reemplazado exitosamente.';
             } else if (msg.decision === 'omitido') {
               item.classList.add('omitido');
-              item.querySelector('.action-bar').innerHTML = '⚪️ Omitido y guardado en memoria.';
+              const bar = item.querySelector('.action-bar');
+              bar.textContent = '';
+              const icon = document.createElement('span'); icon.className = 'icon'; icon.textContent = '⏭️';
+              bar.appendChild(icon);
+              const txt = document.createElement('span'); txt.textContent = ' Omitido y guardado en memoria.';
+              bar.appendChild(txt);
+              statusBox.className = 'status info';
+              statusBox.innerHTML = '<span class="icon">⏭️</span> Elemento omitido.';
+            } else if (msg.decision === 'listo') {
+              item.classList.add('revisado');
+              const bar = item.querySelector('.action-bar');
+              bar.textContent = '';
+              const icon = document.createElement('span'); icon.className = 'icon'; icon.textContent = '✔️';
+              bar.appendChild(icon);
+              const txt = document.createElement('span'); txt.textContent = ' Marcado como listo.';
+              bar.appendChild(txt);
+              statusBox.className = 'status success';
+              statusBox.innerHTML = '<span class="icon">✔️</span> Elemento marcado como listo.';
             }
+            // Decrementar contador si se desea ocultar de la lista; por ahora solo marcamos estado visual
           }
           break;
         case 'memoria-limpiada':
           statusBox.className = 'status success';
-          statusBox.innerHTML = '¡Memoria limpiada! La próxima búsqueda será desde cero.';
+          statusBox.innerHTML = '<span class="icon">🗑️</span> Memoria limpiada correctamente.';
           setTimeout(() => {
             statusBox.className = 'status info';
-            statusBox.innerHTML = 'Listo para revisar.';
+            statusBox.innerHTML = '<span class="icon">✨</span> Listo para revisar.';
           }, 2500);
           break;
       }

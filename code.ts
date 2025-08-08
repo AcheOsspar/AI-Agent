@@ -1,10 +1,39 @@
 // --- CONFIGURACIÓN Y ESTADO GLOBAL ---
 figma.showUI(__html__, { width: 360, height: 580, title: "Asistente de Contenido" });
 
-const STORAGE_KEY = 'contentAssistantDecisions';
+// Namespace de almacenamiento por documento usando pluginData en el root
+function getDocKey(): string {
+  let key = figma.root.getPluginData('contentAssistantDocKey');
+  if (!key) {
+    key = `doc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    figma.root.setPluginData('contentAssistantDocKey', key);
+  }
+  return key;
+}
+const STORAGE_KEY = `contentAssistantDecisions:${getDocKey()}`;
 
 // --- FUNCIONES AUXILIARES ---
 const esperar = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+// Carga todas las fuentes utilizadas en un TextNode (maneja estilos mixtos)
+async function loadFontsInNode(textNode: TextNode) {
+  try {
+    const segments = textNode.getStyledTextSegments(["fontName"]);
+    const unique: FontName[] = [];
+    for (const seg of segments) {
+      const f = seg.fontName as FontName;
+      if (!unique.some(u => u.family === f.family && u.style === f.style)) {
+        unique.push(f);
+      }
+    }
+    await Promise.all(unique.map(f => figma.loadFontAsync(f)));
+  } catch (e) {
+    // Fallback: si falla por algún motivo, intenta con fontName si no es mixed
+    if (textNode.fontName && textNode.fontName !== figma.mixed) {
+      await figma.loadFontAsync(textNode.fontName as FontName);
+    }
+  }
+}
 
 function getNombreUbicacion(nodo: SceneNode): string {
   let parent = nodo.parent;
@@ -18,7 +47,7 @@ function getNombreUbicacion(nodo: SceneNode): string {
   return "Canvas Principal";
 }
 
-async function guardarDecision(nodeId: string, termino: string, decision: 'omitido' | 'reemplazado') {
+async function guardarDecision(nodeId: string, termino: string, decision: 'omitido' | 'reemplazado' | 'listo') {
   const decisiones = await figma.clientStorage.getAsync(STORAGE_KEY) || {};
   const errorId = `${nodeId}__${termino}`; // Usamos doble guion bajo para más seguridad
   decisiones[errorId] = { estado: decision };
@@ -40,16 +69,22 @@ figma.ui.onmessage = async (msg) => {
     return;
   }
 
+  if (msg.type === 'marcar-listo') {
+    await guardarDecision(msg.nodeId, msg.termino, 'listo');
+    figma.ui.postMessage({ type: 'decision-guardada', nodeId: msg.nodeId, termino: msg.termino, decision: 'listo' });
+    return;
+  }
+
   if (msg.type === 'reemplazar-texto') {
     const { nodeId, terminoAntiguo, terminoNuevo } = msg;
     const nodo = await figma.getNodeByIdAsync(nodeId) as TextNode;
 
     if (nodo && nodo.type === 'TEXT') {
-      await figma.loadFontAsync(nodo.fontName as FontName);
+      await loadFontsInNode(nodo);
       
       const textoActual = nodo.characters;
       // Creamos un RegExp para reemplazar de forma case-insensitive
-      const regex = new RegExp(terminoAntiguo.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i');
+      const regex = new RegExp(terminoAntiguo.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
       const textoNuevo = textoActual.replace(regex, terminoNuevo);
       
       nodo.characters = textoNuevo;
@@ -64,6 +99,10 @@ figma.ui.onmessage = async (msg) => {
         decision: 'reemplazado',
         terminoNuevo
       });
+
+      // Navega al nodo tras reemplazar
+      figma.currentPage.selection = [nodo];
+      figma.viewport.scrollAndZoomIntoView([nodo]);
     }
     return;
   }
@@ -97,7 +136,7 @@ figma.ui.onmessage = async (msg) => {
         const errorId = `${capaDeTexto.id}__${termino}`;
         
         // ✅ Si la decisión ya está en memoria, la salta
-        if (decisionesGuardadas[errorId] && (decisionesGuardadas[errorId].estado === 'omitido' || decisionesGuardadas[errorId].estado === 'reemplazado')) {
+  if (decisionesGuardadas[errorId] && (decisionesGuardadas[errorId].estado === 'omitido' || decisionesGuardadas[errorId].estado === 'reemplazado' || decisionesGuardadas[errorId].estado === 'listo')) {
           continue; 
         }
 
